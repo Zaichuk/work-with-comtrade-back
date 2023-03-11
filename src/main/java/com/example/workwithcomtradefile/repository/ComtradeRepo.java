@@ -26,8 +26,6 @@ public class ComtradeRepo implements ComtradeRepository {
     }
     @Override
     public List<Measurement> getMeasurements(int start, int end){
-//        em.createNamedQuery("select m from Measurement m where   m.id > :startrSet and m.id<:endSet", Measurement.class);
-//        List<Measurement> result = em.createNativeQuery("select m from Measurement m where   m.id > :startrSet ","select m from Measurement m where   m.id < :endSet ")
         List<Measurement> result = em.createQuery("select m from Measurement m where   m.id > :startSet and m.id<:endSet", Measurement.class)
                 .setParameter("startSet", start)
                 .setParameter("endSet", end)

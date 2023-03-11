@@ -15,7 +15,6 @@ public class ComtradeController {
 
     @PostMapping("/data/upload")
     public void getComtradeFile(@RequestBody MultipartFile file){
-//        comtradeService.setComtrade(file);
         comtradeService.addMeasurements(file);
     }
 
