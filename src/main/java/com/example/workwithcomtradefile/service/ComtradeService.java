@@ -11,18 +11,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
-public class ComtradeService implements ComtradeServ{
+public class ComtradeService implements ComtradeServ {
 
     @Autowired
     private ComtradeRepository comtradeRepo;
@@ -36,81 +41,80 @@ public class ComtradeService implements ComtradeServ{
     }
 
     @Override
-    public void addMeasurements(MultipartFile file){
+    public void addMeasurements(MultipartFile file) {
         parseFile(file);
         log.info("Succsefully addeed measurements");
     }
+
     @Override
-    public String defineShortCircuit(int start, int end){
-        List<Measurement> list = comtradeRepo.getMeasurements(start,end);
-        String resStr ="";
-        list.forEach(el-> log.debug("id = {},  ia = {}, ib = {}, ic = {}  ",el.getId(), el.getIb(), el.getIb(), el.getIc()));
-        for (Measurement m:list){
+    public String defineShortCircuit(int start, int end) {
+        List<Measurement> list = new ArrayList<>(comtradeRepo.getMeasurements(start, end));
+
+        list.forEach(el -> log.debug("id = {},  ia = {}, ib = {}, ic = {}  ", el.getId(), el.getIa(), el.getIb(), el.getIc()));
 
 
-          resStr =   compareWithSetting(resStr, Double::compare,"A", m.getIa());
-          resStr =  compareWithSetting(resStr, Double::compare,"B", m.getIb());
-          resStr =   compareWithSetting(resStr, Double::compare,"C", m.getIc());
+        Measurement maxA = list.stream().max((el0, el1) -> Double.compare(Math.abs(el0.getIa()), Math.abs(el1.getIa()))).get();
+        log.info("Max value in phase A is {}", maxA);
 
+        Measurement maxB = list.stream().max((el0, el1) -> Double.compare(Math.abs(el0.getIb()), Math.abs(el1.getIb()))).get();
+        log.info("Max value in phase B is {}", maxB);
 
+        Measurement maxC = list.stream().max((el0, el1) -> Double.compare(Math.abs(el0.getIc()), Math.abs(el1.getIc()))).get();
+        log.info("Max value in phase C is {}", maxC);
+
+        String resStr = "";
+
+        if (compareWithSetting(maxA.getIa())) {
+            resStr = resStr + "A";
+        } if (compareWithSetting(maxB.getIb())){
+            resStr = resStr + "B";
+        } if (compareWithSetting(maxC.getIc())){
+            resStr = resStr + "C";
         }
 
 
-        return deleteRepeatingInStr(resStr);
+        return resStr;
 
     }
+
 
 
     @SneakyThrows
     private void parseFile(MultipartFile file) {
-        InputStream inputStream = file.getInputStream();
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-        String line = bufferedReader.readLine();
-        line = bufferedReader.readLine();
-        while (line != null){
-            String[] stringParts = line.split(",");
-            if (stringParts.length > 3){
-         Double[] measurArr =  Arrays.stream(stringParts).skip(0)
-                 .limit(3).map(Double::parseDouble).toArray(Double[]::new);
+        List<Double> doubles = new ArrayList<>();
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
 
-              Function<Measurement,Measurement> setMeasurementFieldsFunction = el->{
-                  el.setIa(measurArr[0]);
-                  el.setIb(measurArr[1]);
-                  el.setIc(measurArr[2]);
-                  return el;
-
-              };
-
-                    comtradeRepo.save(setMeasurementFieldsFunction.apply(new Measurement()));
-            }
-
-            line = bufferedReader.readLine();
-        }
+        bufferedReader.lines().skip(1)
+                .flatMap(el -> Arrays.stream(el.split(","))).map(Double::parseDouble)
+                .forEach(el -> {
+                    doubles.add(el);
+                    if (doubles.size() == 5) {
+                        Measurement measurement = new Measurement();
+                        measurement.setIa(doubles.get(1));
+                        measurement.setIb(doubles.get(2));
+                        measurement.setIc(doubles.get(3));
+                        doubles.clear();
+                        comtradeRepo.save(measurement);
+                    }
+                });
         bufferedReader.close();
-
-
-
-
-
-
     }
 
 
 
-    private String compareWithSetting(String str, Comparator<Double> comparator, String phase, Double measure){
-            measure = Math.abs(measure / Math.sqrt(2));
-            if (comparator.compare(measure,currentSetting)==1){
-                str = str + phase;
-            }
+    private boolean compareWithSetting(Double max) {
 
-        return str;
+        if (Double.compare(getRms(max), currentSetting) == 1) {
+
+            return true;
+        }else {
+            return false;
+        }
+
     }
 
-    private String deleteRepeatingInStr(String string){
-        return string.chars()
-                .sorted().distinct()
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+    private double getRms(Double max) {
+        return Math.abs(max) / Math.sqrt(2);
     }
-
 
 }
