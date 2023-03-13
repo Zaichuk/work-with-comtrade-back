@@ -36,14 +36,14 @@ public class ComtradeService implements ComtradeServ {
     @Override
     public void setCurrentSetting(double currentSetting) {
         this.currentSetting = currentSetting;
-        log.info("Succsefully addeed currentSetting");
+        log.info("Successfully added currentSetting");
 
     }
 
     @Override
     public void addMeasurements(MultipartFile file) {
         parseFile(file);
-        log.info("Succsefully addeed measurements");
+        log.info("Successfully added measurements");
     }
 
     @Override
@@ -53,14 +53,16 @@ public class ComtradeService implements ComtradeServ {
         list.forEach(el -> log.debug("id = {},  ia = {}, ib = {}, ic = {}  ", el.getId(), el.getIa(), el.getIb(), el.getIc()));
 
 
-        Measurement maxA = list.stream().max((el0, el1) -> Double.compare(Math.abs(el0.getIa()), Math.abs(el1.getIa()))).get();
-        log.info("Max value in phase A is {}", maxA);
+        Measurement maxA =getAmplitude(list, Comparator.comparingDouble(el0 -> Math.abs(el0.getIa())));
 
-        Measurement maxB = list.stream().max((el0, el1) -> Double.compare(Math.abs(el0.getIb()), Math.abs(el1.getIb()))).get();
-        log.info("Max value in phase B is {}", maxB);
+        log.info("Max value in phase A is {} which Id is {}", maxA.getIa(), maxA.getId());
 
-        Measurement maxC = list.stream().max((el0, el1) -> Double.compare(Math.abs(el0.getIc()), Math.abs(el1.getIc()))).get();
-        log.info("Max value in phase C is {}", maxC);
+
+        Measurement maxB = getAmplitude(list, Comparator.comparingDouble(el0 -> Math.abs(el0.getIb())));
+        log.info("Max value in phase B is {} which Id is {}", maxB.getIb(), maxB.getId());
+
+        Measurement maxC =getAmplitude(list, Comparator.comparingDouble(el0 -> Math.abs(el0.getIc())));
+        log.info("Max value in phase C is {} which Id is {}", maxC.getIc(), maxC.getId());
 
         String resStr = "";
 
@@ -111,6 +113,10 @@ public class ComtradeService implements ComtradeServ {
             return false;
         }
 
+    }
+
+    private Measurement getAmplitude(List<Measurement> list, Comparator<Measurement> comparator){
+        return list.stream().max(comparator).get();
     }
 
     private double getRms(Double max) {
