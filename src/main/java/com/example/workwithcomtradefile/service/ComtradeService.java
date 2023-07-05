@@ -106,12 +106,7 @@ public class ComtradeService implements ComtradeServ {
 
     private boolean compareWithSetting(Double max) {
 
-        if (Double.compare(getRms(max), currentSetting) == 1) {
-
-            return true;
-        }else {
-            return false;
-        }
+        return Double.compare(getRms(max), currentSetting) == 1;
 
     }
 
