@@ -5,7 +5,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
 @Repository
@@ -18,23 +17,24 @@ public class ComtradeRepo implements ComtradeRepository {
     public void   save(Measurement measurement){
         if (measurement.getId()==0){
             em.persist(measurement);
-
         }else {
              em.merge(measurement);
         }
-
     }
+
     @Override
     public List<Measurement> getMeasurements(int start, int end){
-        List<Measurement> result = em.createQuery("select m from Measurement m where   m.id > :startSet and m.id<:endSet", Measurement.class)
-                .setParameter("startSet", start)
+        return em.createQuery(
+                "select m from Measurement m where   m.id > :startSet and m.id<:endSet", Measurement.class
+                ).setParameter("startSet", start)
                 .setParameter("endSet", end)
                 .getResultList();
-        return result;
     }
 
-
-
-
-
+    @Override
+    public List<Measurement> getAllMeasurements() {
+      return em.createQuery(
+                "select  m from  Measurement m", Measurement.class
+        ).getResultList();
+    }
 }
