@@ -2,6 +2,8 @@ package com.example.workwithcomtradefile.service;
 
 import com.example.workwithcomtradefile.model.Measurement;
 import com.example.workwithcomtradefile.repository.ComtradeRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +33,18 @@ public class ComtradeService implements ComtradeServ {
 
     @Override
     public String getJsonMeasurements() {
-        return comtradeRepo.getAllMeasurements().toString();
+        List<Measurement> measurements = new ArrayList<>(
+                comtradeRepo.getAllMeasurements()
+        );
+
+        ObjectMapper mapper = new ObjectMapper();
+        String dataInJson = null;
+        try {
+            dataInJson = mapper.writeValueAsString(measurements);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return dataInJson;
     }
 
     @Override
@@ -46,13 +59,13 @@ public class ComtradeService implements ComtradeServ {
                 comtradeRepo.getMeasurements(start, end)
         );
         measurements.forEach(el ->
-            log.debug(
-                    "id = {},  ia = {}, ib = {}, ic = {}  ",
-                    el.getId(),
-                    el.getIa(),
-                    el.getIb(),
-                    el.getIc()
-            ));
+                log.debug(
+                        "id = {},  ia = {}, ib = {}, ic = {}  ",
+                        el.getId(),
+                        el.getIa(),
+                        el.getIb(),
+                        el.getIc()
+                ));
 
         Measurement maxA = getAmplitude(
                 measurements,
